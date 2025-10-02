@@ -4,9 +4,9 @@ const CONFIG = {
   ASSET_BASE: "assets",
   EXT: "png", // troque para "jpg" se preferir
   DIFFS: {
-    easy:   { label: "Fácil",   pairs: 5,  cols: 5, rows: 2, boardClass: "board--easy"   },
-    medium: { label: "Médio",   pairs: 10, cols: 5, rows: 4, boardClass: "board--medium" },
-    hard:   { label: "Difícil", pairs: 20, cols: 8, rows: 5, boardClass: "board--hard"   },
+    easy:   { label: "Fácil",   pairs: 4,  cols: 4, rows: 2, boardClass: "board--easy"   },
+    medium: { label: "Médio",   pairs: 8, cols: 4, rows: 4, boardClass: "board--medium" },
+    hard:   { label: "Difícil", pairs: 12, cols: 6, rows: 4, boardClass: "board--hard"   },
   },
   HINT_DURATION_MS: 2000,
   FLIP_BACK_MS: 650,
