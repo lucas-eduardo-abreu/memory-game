@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Jogo da Memória — Totem</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <!-- TELA INICIAL -->
+    <section id="screen-start" class="screen screen--active">
+      <div class="panel">
+        <h1>Jogo da Memória</h1>
+        <p class="subtitle">Clique para começar</p>
+        <button id="btn-start" class="btn btn-primary btn-xl">Iniciar</button>
+      </div>
+    </section>
+
+    <!-- SELEÇÃO DE DIFICULDADE -->
+    <section id="screen-select" class="screen">
+      <div class="panel">
+        <h2>Escolha a dificuldade</h2>
+        <div class="difficulty-grid">
+          <button class="btn btn-secondary btn-lg" data-diff="easy">Fácil<br><small>5 duplas</small></button>
+          <button class="btn btn-secondary btn-lg" data-diff="medium">Médio<br><small>10 duplas</small></button>
+          <button class="btn btn-secondary btn-lg" data-diff="hard">Difícil<br><small>20 duplas</small></button>
+        </div>
+        <button id="btn-back-start" class="btn btn-ghost">Voltar</button>
+      </div>
+    </section>
+
+    <!-- JOGO -->
+    <section id="screen-game" class="screen">
+      <header class="topbar">
+        <div class="left">
+          <button id="btn-exit" class="btn btn-ghost">← Menu</button>
+        </div>
+        <div class="center">
+          <span id="hud-difficulty" class="badge">—</span>
+          <span class="dot">•</span>
+          <span id="hud-pairs" class="badge">0/0</span>
+          <span class="dot">•</span>
+          <span id="hud-moves" class="badge">Movimentos: 0</span>
+          <span class="dot">•</span>
+          <span id="hud-time" class="badge">00:00</span>
+        </div>
+        <div class="right">
+          <button id="btn-restart" class="btn btn-outline">Recomeçar</button>
+        </div>
+      </header>
+      <div id="board" class="board"></div>
+    </section>
+
+    <!-- FIM DE PARTIDA -->
+    <section id="screen-win" class="screen">
+      <div class="panel">
+        <h2>Parabéns! 🎉</h2>
+        <p id="win-stats" class="subtitle"></p>
+        <div class="actions">
+          <button id="btn-play-again" class="btn btn-primary">Jogar novamente</button>
+          <button id="btn-go-menu" class="btn btn-ghost">Voltar ao menu</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>
