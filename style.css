@@ -16,7 +16,7 @@
 html, body { height: 100%; }
 body {
   margin: 0;
-  background: radial-gradient(1200px 800px at 50% -10%, #162233 0%, var(--bg) 60%);
+  background: url(assets/image.png);
   color: var(--text);
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji','Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
   -webkit-user-select: none; user-select: none;
@@ -130,7 +130,7 @@ h1, h2 { margin: 6px 0 8px; font-weight: 800; letter-spacing: 0.2px; }
 
 /* cartas menores no médio */
 .board--medium .card__inner {
-  padding-top: 60%;   /* um pouco mais achatado */
+  padding-top: 55%;   /* um pouco mais achatado */
 }
 
 /* cartas ainda menores no difícil */
@@ -160,7 +160,7 @@ h1, h2 { margin: 6px 0 8px; font-weight: 800; letter-spacing: 0.2px; }
 
 .card__face--front {
   transform: rotateY(180deg);
-  background: #0d1520;              /* cor de fundo */
+  background: none;              /* cor de fundo */
   display: flex;                    /* centraliza conteúdo */
   align-items: center;
   justify-content: center;
