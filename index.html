@@ -7,9 +7,21 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main id="app">
+  <main id="app" aria-live="polite">
+    <!-- TELA DE LOADING / PRELOAD -->
+    <section id="screen-loading" class="screen" aria-label="Carregando">
+      <div class="panel">
+        <h2>Carregando assets…</h2>
+        <div class="loader-wrap">
+          <div id="loader-bar" class="loader-bar" style="width:0%"></div>
+        </div>
+        <p id="loader-text" class="subtitle">0%</p>
+        <button id="btn-skip-loading" class="btn btn-outline" hidden>Pular</button>
+      </div>
+    </section>
+
     <!-- TELA INICIAL -->
-    <section id="screen-start" class="screen screen--active">
+    <section id="screen-start" class="screen screen--active" aria-label="Menu inicial">
       <div class="panel">
         <h1>Jogo da Memória</h1>
         <p class="subtitle">Clique para começar</p>
@@ -18,7 +30,7 @@
     </section>
 
     <!-- SELEÇÃO DE DIFICULDADE -->
-    <section id="screen-select" class="screen">
+    <section id="screen-select" class="screen" aria-label="Seleção de dificuldade">
       <div class="panel">
         <h2>Escolha a dificuldade</h2>
         <div class="difficulty-grid">
@@ -31,32 +43,48 @@
     </section>
 
     <!-- JOGO -->
-    <section id="screen-game" class="screen">
-      <header class="topbar">
+    <section id="screen-game" class="screen" aria-label="Tabuleiro do jogo">
+      <header class="topbar" role="toolbar" aria-label="Painel do jogo">
         <div class="left">
-          <button id="btn-exit" class="btn btn-ghost">← Menu</button>
+          <button id="btn-exit" class="btn btn-ghost" aria-label="Voltar ao menu">← Menu</button>
         </div>
         <div class="center">
-          <span id="hud-difficulty" class="badge">—</span>
+          <span id="hud-difficulty" class="badge" aria-live="polite">—</span>
           <span class="dot">•</span>
-          <span id="hud-pairs" class="badge">0/0</span>
+          <span id="hud-pairs" class="badge" aria-live="polite">0/0</span>
           <span class="dot">•</span>
-          <span id="hud-moves" class="badge">Movimentos: 0</span>
+          <span id="hud-moves" class="badge" aria-live="polite">Movimentos: 0</span>
           <span class="dot">•</span>
-          <span id="hud-time" class="badge">00:00</span>
+          <span id="hud-time" class="badge" aria-live="polite">00:00</span>
+          <span class="dot">•</span>
+          <span id="hud-best" class="badge" aria-live="polite" title="Seu recorde">Recorde —</span>
         </div>
         <div class="right">
-          <button id="btn-restart" class="btn btn-outline">Recomeçar</button>
+          <button id="btn-hint" class="btn btn-outline" aria-label="Mostrar dica (1x)">Dica (1)</button>
+          <button id="btn-pause" class="btn btn-outline" aria-pressed="false" aria-label="Pausar">Pausar</button>
+          <button id="btn-mute" class="btn btn-outline" aria-pressed="false" aria-label="Ativar/Desativar som">🔊</button>
+          <button id="btn-restart" class="btn btn-outline" aria-label="Recomeçar">Recomeçar</button>
         </div>
       </header>
-      <div id="board" class="board"></div>
+
+      <!-- OVERLAY DE PAUSA -->
+      <div id="pause-overlay" class="overlay" hidden role="dialog" aria-label="Jogo pausado">
+        <div class="overlay-content">
+          ⏸ Pausado
+          <div style="margin-top:20px;">
+            <button id="btn-resume" class="btn btn-primary">Retomar</button>
+          </div>
+        </div>
+      </div>
+      <div id="board" class="board" role="grid" aria-label="Cartas do tabuleiro"></div>
     </section>
 
     <!-- FIM DE PARTIDA -->
-    <section id="screen-win" class="screen">
+    <section id="screen-win" class="screen" aria-label="Fim de partida">
       <div class="panel">
         <h2>Parabéns! 🎉</h2>
         <p id="win-stats" class="subtitle"></p>
+        <p id="win-best" class="subtitle"></p>
         <div class="actions">
           <button id="btn-play-again" class="btn btn-primary">Jogar novamente</button>
           <button id="btn-go-menu" class="btn btn-ghost">Voltar ao menu</button>

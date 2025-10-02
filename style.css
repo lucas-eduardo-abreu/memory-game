@@ -8,6 +8,8 @@
   --primary-2: #2f7dd1;
   --outline: #2a3544;
   --accent: #8bffa8;
+  --warn: #ffcc66;
+  --danger: #ff6b6b;
 }
 
 * { box-sizing: border-box; }
@@ -37,6 +39,23 @@ body {
 
 h1, h2 { margin: 6px 0 8px; font-weight: 800; letter-spacing: 0.2px; }
 .subtitle { color: var(--muted); margin: 4px 0 20px; }
+
+/* Loader */
+.loader-wrap {
+  width: min(520px, 90vw);
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--outline);
+  background: #152034;
+  overflow: hidden;
+  margin: 12px auto;
+}
+.loader-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  width: 0%;
+  transition: width .2s ease;
+}
 
 /* Botões */
 .btn {
@@ -79,57 +98,105 @@ h1, h2 { margin: 6px 0 8px; font-weight: 800; letter-spacing: 0.2px; }
 /* Tabuleiro */
 .board {
   width: min(1100px, 94vw);
-  height: min(1700px, 80vh);
+  height: calc(100vh - 64px);  /* ocupa só o espaço disponível abaixo da topbar */
   margin-top: 64px;
   display: grid;
   gap: 10px;
   place-content: center;
+  overflow: auto;              /* se faltar espaço, scrolla só o board */
 }
-
-/* Grades por dificuldade - ajustes visuais */
+/* Grades por dificuldade */
 .board--easy   { grid-template-columns: repeat(5, 1fr); grid-auto-rows: 1fr; }
 .board--medium { grid-template-columns: repeat(5, 1fr); grid-auto-rows: 1fr; }
 .board--hard   { grid-template-columns: repeat(8, 1fr); grid-auto-rows: 1fr; }
 
 /* Carta com flip 3D */
 .card { perspective: 1200px; } 
+.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
+
+/* ↓ ligeiro ajuste melhora nitidez em telas densas */
 .card__inner {
-  position: relative; width: 100%; padding-top: 130%;
-  transform-style: preserve-3d; transition: transform .28s ease;
-  border-radius: 12px; overflow: hidden;
-  box-shadow: 0 8px 18px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.02);
-  border: 1px solid #1f2a38;
-  will-change: transform;
-}
-.card.flipped .card__inner { transform: rotateY(180deg); }
-.card__face {
-  position: absolute; inset: 0;
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
-}
-.card__face--front {
-  transform: rotateY(180deg) translateZ(1px);
-  background: #0d1520;
-}
-.card__face--front img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-}
-.card__face--back {
-  /* Padrão visual sem precisar de imagem: */
-  background:
-    linear-gradient(45deg, rgba(77,163,255,0.08) 25%, transparent 25%) -10px 0/20px 20px,
-    linear-gradient(-45deg, rgba(77,163,255,0.08) 25%, transparent 25%) -10px 0/20px 20px,
-    linear-gradient(45deg, transparent 75%, rgba(77,163,255,0.08) 75%) -10px 0/20px 20px,
-    linear-gradient(-45deg, transparent 75%, rgba(77,163,255,0.08) 75%) -10px 0/20px 20px,
-    linear-gradient(#172234, #0f1724);
-    transform: translateZ(0);                     /* <- acrescente */
+  position: relative;
+  width: 100%;
+  padding-top: 120%;            /* define proporção */
+  transform-style: preserve-3d; /* habilita 3D */
+  transition: transform .6s;
 }
 
-/* Responsivo (mantém botões grandes) */
+/* cartas menores no médio */
+.board--medium .card__inner {
+  padding-top: 75%;   /* um pouco mais achatado */
+}
+
+/* cartas ainda menores no difícil */
+.board--hard .card__inner {
+  padding-top: 90%;    /* reduz mais a altura */
+}
+
+.card.flipped .card__inner {
+  transform: rotateY(180deg);   /* gira o inner */
+}
+
+.card__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;  /* esconde o verso */
+}
+
+.card__face--back {
+  background: #0b0f14; /* cor de fundo fallback */
+  background-image: url("assets/logo.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100%;   /* ajuste o tamanho do logo */
+}
+
+.card__face--front {
+  transform: rotateY(180deg);
+  background: #0d1520;              /* cor de fundo */
+  display: flex;                    /* centraliza conteúdo */
+  align-items: center;
+  justify-content: center;
+  padding: 6%;                      /* opcional, dá margem */
+}
+
+.card__face--front img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;              /* mantém proporção */
+}
+
+/* OVERLAY DE PAUSA — cobre a viewport inteira e bloqueia cliques */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: all;
+  display: grid; 
+  place-items: center;
+  background: rgba(3, 12, 24, .6);
+  backdrop-filter: blur(2px);
+}
+.overlay[hidden] { display: none; }
+
+.overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: 900;
+  font-size: 42px;
+  color: var(--warn);
+  text-shadow: 0 2px 12px rgba(0,0,0,.6);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(20,24,32,.4);
+}
+
+/* Responsivo */
 @media (max-width: 720px) {
   .btn { font-size: 16px; padding: 12px 14px; }
   .btn-lg { font-size: 18px; }
   .btn-xl { font-size: 20px; }
   .difficulty-grid { grid-template-columns: 1fr; }
 }
-
