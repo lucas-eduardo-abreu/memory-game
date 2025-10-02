@@ -19,4 +19,4 @@ Um jogo da memória totalmente em **HTML, CSS e JavaScript puro**, com suporte a
    ```bash
    git clone https://github.com/seu-usuario/memory-game.git
    cd memory-game
-```
+   ```
