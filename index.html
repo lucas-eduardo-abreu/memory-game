@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Jogo da Memória — Totem</title>
+  <title>Jogo da Memória</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,10 +22,11 @@
 
     <!-- TELA INICIAL -->
     <section id="screen-start" class="screen screen--active" aria-label="Menu inicial">
-      <div class="panel">
-        <h1>Jogo da Memória</h1>
-        <p class="subtitle">Clique para começar</p>
-        <button id="btn-start" class="btn btn-primary btn-xl">Iniciar</button>
+      <div class="start-container">
+        <img src="assets/logo.png" alt="Logo Orquídea" class="start-logo">
+        <div class="start-button-wrapper">
+          <button id="btn-start" class="btn btn-start">Iniciar<br>Jogo!</button>
+        </div>
       </div>
     </section>
 
@@ -34,9 +35,9 @@
       <div class="panel">
         <h2>Escolha a dificuldade</h2>
         <div class="difficulty-grid">
-          <button class="btn btn-secondary btn-lg" data-diff="easy">Fácil<br><small>4 duplas</small></button>
-          <button class="btn btn-secondary btn-lg" data-diff="medium">Médio<br><small>8 duplas</small></button>
-          <button class="btn btn-secondary btn-lg" data-diff="hard">Difícil<br><small>12 duplas</small></button>
+          <button class="btn btn-colored btn-secondary btn-lg" data-diff="easy">Fácil<br></button>
+          <button class="btn btn-colored btn-secondary btn-lg" data-diff="medium">Médio<br></button>
+          <button class="btn btn-colored btn-secondary btn-lg" data-diff="hard">Difícil<br></button>
         </div>
         <button id="btn-back-start" class="btn btn-ghost">Voltar</button>
       </div>
@@ -46,45 +47,63 @@
     <section id="screen-game" class="screen" aria-label="Tabuleiro do jogo">
       <header class="topbar" role="toolbar" aria-label="Painel do jogo">
         <div class="left">
-          <button id="btn-exit" class="btn btn-ghost" aria-label="Voltar ao menu">← Menu</button>
+          <button id="btn-exit" class="btn btn-cta" aria-label="Voltar ao menu">← Menu</button>
         </div>
+
         <div class="center">
           <span id="hud-difficulty" class="badge" aria-live="polite">—</span>
+          <span class="dot">•</span>
+
+          <!-- BARRA REGRESSIVA DE TEMPO -->
+          <div id="timebar" class="timebar" role="progressbar"
+               aria-label="Tempo restante" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+            <div class="timebar__track">
+              <div class="timebar__fill" style="width:100%"></div>
+            </div>
+            <span id="hud-time" class="sr-only">00:30</span>
+          </div>
+
+          <!-- ocultos (apenas referência):
           <span class="dot">•</span>
           <span id="hud-pairs" class="badge" aria-live="polite">0/0</span>
           <span class="dot">•</span>
           <span id="hud-moves" class="badge" aria-live="polite">Movimentos: 0</span>
           <span class="dot">•</span>
-          <span id="hud-time" class="badge" aria-live="polite">00:00</span>
-          <span class="dot">•</span>
           <span id="hud-best" class="badge" aria-live="polite" title="Seu recorde">Recorde —</span>
+          -->
         </div>
+
         <div class="right">
+          <!-- (sem pause) -->
+          <!--
           <button id="btn-hint" class="btn btn-outline" aria-label="Mostrar dica (1x)">Dica (1)</button>
-          <button id="btn-pause" class="btn btn-outline" aria-pressed="false" aria-label="Pausar">Pausar</button>
           <button id="btn-mute" class="btn btn-outline" aria-pressed="false" aria-label="Ativar/Desativar som">🔊</button>
           <button id="btn-restart" class="btn btn-outline" aria-label="Recomeçar">Recomeçar</button>
+          -->
         </div>
       </header>
 
-      <!-- OVERLAY DE PAUSA -->
-      <div id="pause-overlay" class="overlay" hidden role="dialog" aria-label="Jogo pausado">
+      <!-- OVERLAY: usado SOMENTE para tempo esgotado -->
+      <div id="pause-overlay" class="overlay" hidden role="dialog" aria-label="Tempo esgotado">
         <div class="overlay-content">
-          ⏸ Pausado
+          ⏰ Tempo esgotado
           <div style="margin-top:20px;">
-            <button id="btn-resume" class="btn btn-primary">Retomar</button>
+            <button id="btn-resume" class="btn btn-primary">Tentar novamente</button>
           </div>
         </div>
       </div>
+
       <div id="board" class="board" role="grid" aria-label="Cartas do tabuleiro"></div>
     </section>
 
     <!-- FIM DE PARTIDA -->
     <section id="screen-win" class="screen" aria-label="Fim de partida">
-      <div class="panel">
-        <h2>Parabéns! 🎉</h2>
-        <p id="win-stats" class="subtitle"></p>
-        <p id="win-best" class="subtitle"></p>
+      <!-- Canvas do confete fica por trás, ocupando a tela toda -->
+      <canvas id="confetti-canvas" class="confetti-canvas" aria-hidden="true"></canvas>
+
+      <div class="panel panel--win">
+        <h2 class="win-title">Parabéns! 🎉</h2>
+
         <div class="actions">
           <button id="btn-play-again" class="btn btn-primary">Jogar novamente</button>
           <button id="btn-go-menu" class="btn btn-ghost">Voltar ao menu</button>

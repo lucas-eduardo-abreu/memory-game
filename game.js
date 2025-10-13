@@ -1,510 +1,316 @@
-// Jogo da Memória — preload por dificuldade, pausa, dica, som e recordes
-// ============================== CONFIG ==============================
+// ==================== CONFIG ====================
 const CONFIG = {
   ASSET_BASE: "assets",
-  EXT: "png", // troque para "jpg" se preferir
+  EXT: "png",
   DIFFS: {
-    easy:   { label: "Fácil",   pairs: 4,  cols: 4, rows: 2, boardClass: "board--easy"   },
-    medium: { label: "Médio",   pairs: 8, cols: 4, rows: 4, boardClass: "board--medium" },
-    hard:   { label: "Difícil", pairs: 12, cols: 6, rows: 4, boardClass: "board--hard"   },
+    easy:   { label: "Fácil",   pairs: 4,  boardClass: "board--easy" },
+    medium: { label: "Médio",   pairs: 8,  boardClass: "board--medium" },
+    hard:   { label: "Difícil", pairs: 14, boardClass: "board--hard" },
   },
-  HINT_DURATION_MS: 2000,
-  FLIP_BACK_MS: 650,
+  TIME_LIMITS: { easy: 30, medium: 45, hard: 60 },
+  FLIP_BACK_MS: 600
 };
 
-// ============================== DOM HELPERS ==============================
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
 
+// ==================== ELEMENTOS ====================
 const screens = {
-  loading: $("#screen-loading"),
-  start:   $("#screen-start"),
-  select:  $("#screen-select"),
-  game:    $("#screen-game"),
-  win:     $("#screen-win"),
+  start: $("#screen-start"),
+  select: $("#screen-select"),
+  game: $("#screen-game"),
+  win: $("#screen-win"),
 };
+const board = $("#board");
+const hud = {
+  diff: $("#hud-difficulty"),
+  time: $("#hud-time"),
+};
+const overlay = $("#pause-overlay");
+const btnStart = $("#btn-start");
+const btnBack = $("#btn-back-start");
+const btnExit = $("#btn-exit");
+const btnResume = $("#btn-resume");
+const btnPlayAgain = $("#btn-play-again");
+const btnGoMenu = $("#btn-go-menu");
+
+// ==================== STATE ====================
+let state = {
+  diff: null,
+  pairs: 0,
+  found: 0,
+  first: null,
+  lock: false,
+  timeLeft: 0,
+  totalTime: 0,
+  timerId: null,
+};
+
+// ==================== UTIL ====================
 function showScreen(name){
   $$(".screen").forEach(s => s.classList.remove("screen--active"));
   screens[name].classList.add("screen--active");
 }
-
-const boardEl = $("#board");
-const hud = {
-  difficulty: $("#hud-difficulty"),
-  pairs: $("#hud-pairs"),
-  moves: $("#hud-moves"),
-  time: $("#hud-time"),
-  best: $("#hud-best"),
-};
-
-const pauseOverlay = $("#pause-overlay");
-const loaderBar = $("#loader-bar");
-const loaderText = $("#loader-text");
-const btnSkipLoading = $("#btn-skip-loading");
-
-const btnStart = $("#btn-start");
-const btnBackStart = $("#btn-back-start");
-const btnExit = $("#btn-exit");
-const btnRestart = $("#btn-restart");
-const btnPlayAgain = $("#btn-play-again");
-const btnGoMenu = $("#btn-go-menu");
-const btnPause = $("#btn-pause");
-const btnHint = $("#btn-hint");
-const btnMute = $("#btn-mute");
-
-// ============================== STATE ==============================
-let state = {
-  diffKey: null,
-  totalPairs: 0,
-  foundPairs: 0,
-  firstCard: null,
-  lock: false,
-  moves: 0,
-  timerId: null,
-  startTs: 0,
-  paused: false,
-  hintUsed: false,
-  mute: false,
-};
-
-// ============================== STORAGE (recordes) ==============================
-const LS_KEY = "memory-records-v1";
-function loadRecords(){
-  try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; }
-  catch { return {}; }
-}
-function saveRecords(records){
-  localStorage.setItem(LS_KEY, JSON.stringify(records));
-}
-function getBest(diffKey){
-  const rec = loadRecords()[diffKey];
-  return rec || null;
-}
-function setBest(diffKey, moves, elapsedSec){
-  const recs = loadRecords();
-  const current = recs[diffKey];
-  if (!current || elapsedSec < current.timeSec || (elapsedSec === current.timeSec && moves < current.moves)) {
-    recs[diffKey] = { moves, timeSec: elapsedSec };
-    saveRecords(recs);
-    return true;
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
   }
-  return false;
+  return a;
 }
-function fmtTime(sec){
-  const mm = String(Math.floor(sec/60)).padStart(2,"0");
-  const ss = String(sec%60).padStart(2,"0");
-  return `${mm}:${ss}`;
+function fmt(sec){
+  const s=Math.max(0,sec|0);
+  return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 }
 
-// ============================== SONS (WebAudio) ==============================
-let audioCtx = null;
-function beep(freq=880, ms=70, vol=0.03){
-  if (state.mute) return;
-  if (!audioCtx) {
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-    catch { return; }
-  }
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = "sine";
-  o.frequency.value = freq;
-  g.gain.value = vol;
-  o.connect(g); g.connect(audioCtx.destination);
-  o.start();
-  setTimeout(() => { o.stop(); }, ms);
+// ==================== TIMEBAR ====================
+function updateTimebar(pct){
+  const bar=$("#timebar");
+  const fill=bar.querySelector(".timebar__fill");
+  fill.style.width=(pct*100).toFixed(0)+"%";
+  bar.classList.remove("is-warn","is-danger");
+  if(pct<=0.5) bar.classList.add("is-warn");
+  if(pct<=0.2) bar.classList.add("is-danger");
 }
-const sfx = {
-  flip: () => beep(600, 45, 0.02),
-  match: () => beep(920, 90, 0.035),
-  nope: () => { beep(200, 60, 0.03); setTimeout(()=>beep(180, 60, 0.03), 70); },
-  win: () => { [880, 1040, 1240].forEach((f, i)=>setTimeout(()=>beep(f, 90, 0.04), i*120)); }
-};
 
-// ============================== TIMER ==============================
+// ==================== TIMER ====================
 function startTimer(){
-  state.startTs = Date.now();
-  state.timerId = setInterval(() => {
-    const s = Math.floor((Date.now() - state.startTs)/1000);
-    hud.time.textContent = fmtTime(s);
-  }, 250);
+  const now=Date.now();
+  state.end=now+state.timeLeft*1000;
+  state.timerId=setInterval(()=>{
+    const left=Math.ceil((state.end-Date.now())/1000);
+    state.timeLeft=Math.max(0,left);
+    hud.time.textContent=fmt(state.timeLeft);
+    updateTimebar(state.timeLeft/state.totalTime);
+    if(state.timeLeft<=0){ stopTimer(); timeUp(); }
+  },250);
 }
 function stopTimer(){
-  if (state.timerId) clearInterval(state.timerId);
-  state.timerId = null;
+  clearInterval(state.timerId);
+  state.timerId=null;
 }
-function pauseTimer(){
-  if (!state.timerId) return;
-  stopTimer();
-}
-function resumeTimer(){
-  if (state.timerId || !state.paused) return;
-  const elapsed = parseTime(hud.time.textContent);
-  state.startTs = Date.now() - elapsed*1000;
-  startTimer();
-}
-function parseTime(t="00:00"){
-  const [mm, ss] = t.split(":").map(n=>parseInt(n,10)||0);
-  return mm*60 + ss;
+function timeUp(){
+  state.lock=true;
+  board.style.pointerEvents="none";
+  overlay.hidden=false;
 }
 
-// ============================== ASSETS / PRELOAD (por dificuldade) ==============================
-function buildUrlsFor(diffKey){
-  const urls = [];
-  const pairs = CONFIG.DIFFS[diffKey].pairs;
-  for (let i=1;i<=pairs;i++){
-    urls.push(`${CONFIG.ASSET_BASE}/${diffKey}/${i}.${CONFIG.EXT}`);
-  }
-  return urls;
-}
-async function preloadFor(diffKey, onProgress){
-  const urls = buildUrlsFor(diffKey);
-  let done = 0;
-  const total = urls.length;
-  const loadOne = (src)=> new Promise((resolve)=>{
-    const img = new Image();
-    img.onload = img.onerror = ()=>resolve();
-    img.src = src;
-  });
-  for (const u of urls){
-    await loadOne(u);
-    done++;
-    onProgress && onProgress(done, total);
-  }
-}
-
-// ============================== IMG HELPER (fallback + log) ==============================
-function createImg(src, key) {
-  const img = document.createElement("img");
-  img.alt = `Carta ${key}`;
-  img.src = src;
-
-  img.addEventListener("error", () => {
-    console.error("[MEMORY] Falha ao carregar imagem:", src);
-
-    const fallback = document.createElement("div");
-    fallback.style.cssText = `
-      position:absolute;inset:0;display:grid;place-items:center;
-      background:#2b2f3a;color:#ff7777;font-weight:900;
-      font-family:system-ui,Segoe UI,Roboto,Ubuntu,monospace;
-    `;
-    fallback.textContent = "IMG 404";
-    img.replaceWith(fallback);
-  });
-
-  return img;
-}
-
-// ============================== DECK / BOARD ==============================
-function shuffle(arr){
-  for(let i=arr.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-function buildDeck(diffKey){
-  const cfg = CONFIG.DIFFS[diffKey];
-  const list = [];
+// ==================== BOARD ====================
+function makeDeck(diff){
+  const cfg=CONFIG.DIFFS[diff];
+  const deck=[];
   for(let i=1;i<=cfg.pairs;i++){
-    const src = `${CONFIG.ASSET_BASE}/${diffKey}/${i}.${CONFIG.EXT}`;
-    list.push({ key: i, src });
-    list.push({ key: i, src });
+    const src=`${CONFIG.ASSET_BASE}/${diff}/${i}.${CONFIG.EXT}`;
+    deck.push({k:i,src});
+    deck.push({k:i,src});
   }
-  return shuffle(list);
+  return shuffle(deck);
 }
-function renderBoard(diffKey){
-  const cfg = CONFIG.DIFFS[diffKey];
-  Object.assign(state, {
-    diffKey, totalPairs: cfg.pairs, foundPairs: 0, firstCard: null,
-    lock: false, moves: 0, paused: false, hintUsed: false,
+
+function renderBoard(diff){
+  const cfg=CONFIG.DIFFS[diff];
+  Object.assign(state,{diff,pairs:cfg.pairs,found:0,first:null,lock:false});
+  hud.diff.textContent=cfg.label;
+  board.className="board "+cfg.boardClass;
+  board.innerHTML="";
+  board.style.pointerEvents="auto";
+
+  state.totalTime=CONFIG.TIME_LIMITS[diff];
+  state.timeLeft=state.totalTime;
+  hud.time.textContent=fmt(state.timeLeft);
+  updateTimebar(1);
+
+  const deck=makeDeck(diff);
+  deck.forEach(({k,src})=>{
+    const c=document.createElement("div");
+    c.className="card"; c.dataset.k=k;
+    const inner=document.createElement("div");
+    inner.className="card__inner";
+    const f1=document.createElement("div");
+    f1.className="card__face card__face--front";
+    const img=document.createElement("img");
+    img.src=src; f1.appendChild(img);
+    const f2=document.createElement("div");
+    f2.className="card__face card__face--back";
+    inner.append(f1,f2);
+    c.appendChild(inner);
+    c.onclick=()=>flip(c);
+    board.appendChild(c);
   });
-  hud.difficulty.textContent = cfg.label;
-  hud.pairs.textContent = `0/${cfg.pairs}`;
-  hud.moves.textContent = `Movimentos: 0`;
-  hud.time.textContent = `00:00`;
-  updateBestHud();
-
-  // limpar
-  boardEl.className = "board " + cfg.boardClass;
-  boardEl.innerHTML = "";
-  boardEl.style.pointerEvents = "auto";
-
-  const deck = buildDeck(diffKey);
-  boardEl.setAttribute("role", "grid");
-  boardEl.setAttribute("aria-rowcount", cfg.rows);
-  boardEl.setAttribute("aria-colcount", cfg.cols);
-
-  deck.forEach(({key, src}, idx) => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.dataset.key = String(key);
-    card.setAttribute("role", "gridcell");
-    card.setAttribute("aria-label", "Carta virada");
-    card.setAttribute("tabindex", "0");
-    card.setAttribute("data-index", String(idx));
-
-    const inner = document.createElement("div");
-    inner.className = "card__inner";
-
-    const faceFront = document.createElement("div");
-    faceFront.className = "card__face card__face--front";
-    const img = createImg(src, key);
-    faceFront.appendChild(img);
-
-    const faceBack = document.createElement("div");
-    faceBack.className = "card__face card__face--back";
-
-    inner.appendChild(faceFront);
-    inner.appendChild(faceBack);
-    card.appendChild(inner);
-
-    card.addEventListener("click", () => tryFlip(card));
-    card.addEventListener("keydown", (e) => handleCardKey(e, card));
-
-    boardEl.appendChild(card);
-  });
-
-  // checker assíncrono (lista 404s no console sem travar)
-  (function checkAssetsOnce(deck){
-    const missing = [];
-    deck.forEach(({src}) => {
-      const t = new Image();
-      t.onerror = () => missing.push(src);
-      t.src = src;
-    });
-    setTimeout(() => {
-      if (missing.length) {
-        console.warn("[MEMORY] Arquivos ausentes (verifique caminho/extensão):", missing);
-      }
-    }, 500);
-  })(deck);
-
-  stopTimer();
 }
 
-// ============================== JOGO (regras) ==============================
-function updateBestHud(){
-  const best = getBest(state.diffKey);
-  hud.best.textContent = best ? `Recorde: ${fmtTime(best.timeSec)} / ${best.moves} mov.` : "Recorde —";
-}
-function updateStats(){
-  hud.pairs.textContent = `${state.foundPairs}/${state.totalPairs}`;
-  hud.moves.textContent = `Movimentos: ${state.moves}`;
-}
-function showWin(){
-  const elapsed = parseTime(hud.time.textContent);
-  const improved = setBest(state.diffKey, state.moves, elapsed);
-  const text = `Dificuldade: ${CONFIG.DIFFS[state.diffKey].label} • Pares: ${state.totalPairs} • Movimentos: ${state.moves} • Tempo: ${hud.time.textContent}`;
-  $("#win-stats").textContent = text;
-  $("#win-best").textContent = improved
-    ? "🎉 Novo recorde salvo!"
-    : (getBest(state.diffKey) ? `Seu recorde atual: ${fmtTime(getBest(state.diffKey).timeSec)} / ${getBest(state.diffKey).moves} mov.` : "Ainda sem recorde.");
-  updateBestHud();
-  sfx.win();
-  showScreen("win");
-}
-function tryFlip(card){
-  if (state.lock || state.paused) return;
-  if (card.classList.contains("flipped")) return;
-  if (state.firstCard && state.firstCard === card) return;
-
+function flip(card){
+  if(state.lock||card.classList.contains("flipped"))return;
   card.classList.add("flipped");
-  card.setAttribute("aria-label", `Carta ${card.dataset.key} virada`);
-  sfx.flip();
+  if(!state.first){
+    state.first=card;
+    if(!state.timerId) startTimer();
+    return;
+  }
+  const match=state.first.dataset.k===card.dataset.k;
+  if(match){
+    state.first=null; state.found++;
+    if(state.found===state.pairs){ stopTimer(); win(); }
+  }else{
+    state.lock=true;
+    setTimeout(()=>{
+      card.classList.remove("flipped");
+      state.first.classList.remove("flipped");
+      state.first=null; state.lock=false;
+    },CONFIG.FLIP_BACK_MS);
+  }
+}
 
-  if (!state.firstCard){
-    state.firstCard = card;
-    if (!state.timerId) startTimer();
+function win(){
+  // Mostra tela de vitória minimal
+  showScreen("win");
+  // Dispara confete em peso 🎊
+  startConfetti();
+}
+// ==================== NAV ====================
+btnStart.onclick=()=>showScreen("select");
+btnBack.onclick=()=>showScreen("start");
+$$('#screen-select .btn[data-diff]').forEach(b=>b.onclick=()=>{
+  renderBoard(b.dataset.diff);
+  showScreen("game");
+});
+btnExit.onclick=()=>{ stopTimer(); showScreen("select"); };
+btnResume.onclick=()=>{ overlay.hidden=true; renderBoard(state.diff); showScreen("game"); };
+btnPlayAgain.onclick=()=>{ renderBoard(state.diff); showScreen("game"); };
+btnGoMenu.onclick=()=>{ stopTimer(); showScreen("start"); };
+
+btnPlayAgain.onclick = () => {
+  stopConfetti();
+  renderBoard(state.diff);
+  showScreen("game");
+};
+
+btnGoMenu.onclick = () => {
+  stopConfetti();
+  stopTimer();
+  showScreen("start");
+};
+
+showScreen("start");
+
+// ==================== CONFETTI ====================
+let confettiRAF = null;
+let confettiParticles = [];
+let confettiStartedAt = 0;
+const CONFETTI_COLORS = ["#ffffff", "#ff6b6b", "#ffd93d", "#6bcBef", "#2bd96b", "#ff8bff", "#00953b"];
+const CONFETTI_DURATION_MS = 7000; // quanto tempo anima
+const CONFETTI_GRAVITY = 0.12;
+const CONFETTI_DRAG = 0.995;
+const CONFETTI_COUNT = 320; // MUITO confete 😁
+
+function getCanvas() {
+  return document.getElementById("confetti-canvas");
+}
+function resizeConfettiCanvas() {
+  const c = getCanvas();
+  if (!c) return;
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  c.width  = Math.floor(c.clientWidth  * dpr);
+  c.height = Math.floor(c.clientHeight * dpr);
+  const ctx = c.getContext("2d");
+  ctx.scale(dpr, dpr);
+}
+
+function makeParticle(w, h) {
+  const angle = Math.random() * Math.PI * 2;
+  const speed = 4 + Math.random() * 6;
+  return {
+    x: Math.random() * w,
+    y: -20 + Math.random() * 40,       // nasce no topo
+    vx: Math.cos(angle) * speed * 0.6, // espalha lateralmente
+    vy: Math.sin(angle) * speed * 0.2,
+    size: 6 + Math.random() * 8,
+    rot: Math.random() * Math.PI * 2,
+    vr: (Math.random() - 0.5) * 0.2,
+    color: CONFETTI_COLORS[(Math.random() * CONFETTI_COLORS.length) | 0],
+    alpha: 1,
+    shape: Math.random() < 0.5 ? "rect" : "circle",
+  };
+}
+
+function startConfetti() {
+  const c = getCanvas();
+  if (!c) return;
+  resizeConfettiCanvas();
+  const w = c.clientWidth, h = c.clientHeight;
+
+  confettiParticles = Array.from({ length: CONFETTI_COUNT }, () => makeParticle(w, h));
+  confettiStartedAt = performance.now();
+
+  cancelAnimationFrame(confettiRAF);
+  tickConfetti();
+}
+function stopConfetti() {
+  cancelAnimationFrame(confettiRAF);
+  confettiRAF = null;
+  const c = getCanvas();
+  if (c) {
+    const ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, c.width, c.height);
+  }
+}
+function tickConfetti(ts) {
+  const c = getCanvas();
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  const w = c.clientWidth, h = c.clientHeight;
+
+  // fim por tempo
+  if (ts && ts - confettiStartedAt > CONFETTI_DURATION_MS) {
+    stopConfetti();
     return;
   }
 
-  state.moves += 1;
-  const isMatch = state.firstCard.dataset.key === card.dataset.key;
-  updateStats();
+  ctx.clearRect(0, 0, c.width, c.height);
 
-  if (isMatch){
-    card.style.pointerEvents = "none";
-    state.firstCard.style.pointerEvents = "none";
-    state.firstCard = null;
-    state.foundPairs += 1;
-    updateStats();
-    sfx.match();
+  // desenha e atualiza
+  for (let p of confettiParticles) {
+    // física
+    p.vx *= CONFETTI_DRAG;
+    p.vy = p.vy * CONFETTI_DRAG + CONFETTI_GRAVITY;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rot += p.vr;
 
-    if (state.foundPairs === state.totalPairs){
-      stopTimer();
-      setTimeout(showWin, 350);
+    // reaparece no topo se sair
+    if (p.y > h + 20) {
+      p.y = -20;
+      p.x = Math.random() * w;
+      p.vy = 1 + Math.random() * 2;
+      p.vx = (Math.random() - 0.5) * 6;
     }
-  } else {
-    state.lock = true;
-    sfx.nope();
-    setTimeout(() => {
-      card.classList.remove("flipped");
-      card.setAttribute("aria-label", "Carta virada");
-      state.firstCard.classList.remove("flipped");
-      state.firstCard.setAttribute("aria-label", "Carta virada");
-      state.firstCard = null;
-      state.lock = false;
-    }, CONFIG.FLIP_BACK_MS);
-  }
-}
 
-// ============================== HINT / PAUSE ==============================
-function useHint(){
-  if (state.hintUsed || state.paused || !state.diffKey) return;
-  state.hintUsed = true;
-  btnHint.disabled = true;
-  btnHint.textContent = "Dica (0)";
-  const toClose = [];
-  $$(".card").forEach(c => {
-    if (!c.classList.contains("flipped")) {
-      c.classList.add("flipped");
-      toClose.push(c);
+    // desenho (com leve oscilação de alpha simulando flip)
+    const flicker = 0.5 + 0.5 * Math.cos(p.rot * 3);
+    const a = 0.6 + 0.4 * flicker;
+
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+
+    if (p.shape === "rect") {
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+    } else {
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size * 0.5, 0, Math.PI * 2);
+      ctx.fill();
     }
-  });
-  setTimeout(() => { toClose.forEach(c => c.classList.remove("flipped")); }, CONFIG.HINT_DURATION_MS);
-}
-function togglePause(){
-  if (!state.diffKey) return;
-
-  if (!state.paused){
-    pauseTimer();
-    state.paused = true;
-
-    // BLOQUEIA cliques do tabuleiro enquanto pausado
-    boardEl.style.pointerEvents = "none";
-
-    pauseOverlay.hidden = false;
-    btnPause.setAttribute("aria-pressed", "true");
-    btnPause.textContent = "Retomar";
-  } else {
-    pauseOverlay.hidden = true;
-    btnPause.setAttribute("aria-pressed", "false");
-    btnPause.textContent = "Pausar";
-
-    // LIBERA cliques do tabuleiro
-    boardEl.style.pointerEvents = "auto";
-
-    state.paused = false;
-    resumeTimer();
+    ctx.restore();
   }
+
+  confettiRAF = requestAnimationFrame(tickConfetti);
 }
 
-// ============================== A11Y: TECLADO ==============================
-function handleCardKey(e, card){
-  const cards = $$(".card");
-  const idx = parseInt(card.dataset.index, 10) || 0;
-  const cols = getComputedStyle(boardEl).gridTemplateColumns.split(" ").length;
-
-  switch(e.key){
-    case "Enter":
-    case " ":
-      e.preventDefault();
-      tryFlip(card);
-      break;
-    case "ArrowRight":
-      e.preventDefault();
-      (cards[idx+1] || cards[0])?.focus();
-      break;
-    case "ArrowLeft":
-      e.preventDefault();
-      (cards[idx-1] || cards[cards.length-1])?.focus();
-      break;
-    case "ArrowDown":
-      e.preventDefault();
-      (cards[idx+cols] || cards[(idx+cols)%cards.length])?.focus();
-      break;
-    case "ArrowUp":
-      e.preventDefault();
-      (cards[idx-cols] || cards[(cards.length + idx - cols)%cards.length])?.focus();
-      break;
-  }
-}
-
-// ============================== NAVIGAÇÃO ==============================
-btnStart.addEventListener("click", () => showScreen("select"));
-btnBackStart.addEventListener("click", () => showScreen("start"));
-
-$$('#screen-select .difficulty-grid .btn').forEach(btn => {
-  btn.addEventListener('click', async (e) => {
-    const diff = e.currentTarget.getAttribute('data-diff');
-
-    // Preload apenas da dificuldade escolhida
-    showScreen('loading');
-    btnSkipLoading.hidden = false;
-    let skipped = false;
-    const onSkip = () => { skipped = true; showScreen('start'); };
-    btnSkipLoading.addEventListener("click", onSkip, { once: true });
-
-    await preloadFor(diff, (done, total) => {
-      if (skipped) return;
-      const pct = Math.round((done/total)*100);
-      loaderBar.style.width = pct + "%";
-      loaderText.textContent = pct + "%";
-    });
-
-    if (!skipped) {
-      renderBoard(diff);
-      btnHint.disabled = false;
-      btnHint.textContent = "Dica (1)";
-      showScreen('game');
-      btnSkipLoading.hidden = true;
-    }
-  });
+window.addEventListener("resize", () => {
+  const c = getCanvas();
+  if (!c || c.closest(".screen")?.id !== "screen-win" || !c.closest(".screen")?.classList.contains("screen--active")) return;
+  resizeConfettiCanvas();
 });
-
-btnExit.addEventListener("click", () => {
-  stopTimer();
-  showScreen("select");
-});
-btnRestart.addEventListener("click", () => {
-  if (state.diffKey) {
-    const wasPaused = state.paused;
-    stopTimer();
-    renderBoard(state.diffKey);
-    if (wasPaused && !pauseOverlay.hidden) {
-      pauseOverlay.hidden = true;
-      btnPause.setAttribute("aria-pressed", "false");
-      btnPause.textContent = "Pausar";
-    }
-  }
-});
-btnPlayAgain.addEventListener("click", () => {
-  if (state.diffKey) {
-    renderBoard(state.diffKey);
-    showScreen("game");
-  } else {
-    showScreen("select");
-  }
-});
-btnGoMenu.addEventListener("click", () => {
-  stopTimer();
-  showScreen("start");
-});
-
-btnPause.addEventListener("click", togglePause);
-btnHint.addEventListener("click", useHint);
-btnMute.addEventListener("click", () => {
-  state.mute = !state.mute;
-  btnMute.setAttribute("aria-pressed", String(state.mute));
-  btnMute.textContent = state.mute ? "🔇" : "🔊";
-});
-
-// ============================== BOOT ==============================
-(function boot(){
-  // começamos direto na tela start; preload acontece na escolha da dificuldade
-  showScreen("start");
-})();
-
-// ============================== PAUSAR AO PERDER O FOCO ==============================
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden && screens.game.classList.contains("screen--active") && !state.paused) {
-    togglePause();
-  }
-});
-
-const btnResume = $("#btn-resume");
-if (btnResume) {
-  btnResume.addEventListener("click", () => {
-    togglePause(); // usa a mesma função que já alterna pausa/retomar
-  });
-}
