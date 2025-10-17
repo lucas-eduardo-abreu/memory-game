@@ -5,7 +5,7 @@ const CONFIG = {
   DIFFS: {
     easy:   { label: "Fácil",   pairs: 4,  boardClass: "board--easy" },
     medium: { label: "Médio",   pairs: 8,  boardClass: "board--medium" },
-    hard:   { label: "Difícil", pairs: 14, boardClass: "board--hard" },
+    hard:   { label: "Difícil", pairs: 12, boardClass: "board--hard" },
   },
   TIME_LIMITS: { easy: 30, medium: 45, hard: 60 },
   FLIP_BACK_MS: 600
