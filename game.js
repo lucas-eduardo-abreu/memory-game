@@ -3,7 +3,7 @@ const CONFIG = {
   ASSET_BASE: "assets",
   EXT: "png",
   DIFFS: {
-    easy:   { label: "Fácil",   pairs: 4,  boardClass: "board--easy" },
+    easy:   { label: "Fácil",   pairs: 6,  boardClass: "board--easy" },
     medium: { label: "Médio",   pairs: 8,  boardClass: "board--medium" },
     hard:   { label: "Difícil", pairs: 12, boardClass: "board--hard" },
   },

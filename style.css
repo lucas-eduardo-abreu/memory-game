@@ -186,7 +186,7 @@ h1, h2 { margin: 6px 0 8px; font-weight: 800; letter-spacing: 0.2px; }
   overflow: auto;
 }
 /* Grades por dificuldade */
-.board--easy   { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 1fr; }
+.board--easy   { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; }
 .board--medium { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; }
 .board--hard   { grid-template-columns: repeat(6, 1fr); grid-auto-rows: 1fr; }
 
@@ -220,7 +220,7 @@ h1, h2 { margin: 6px 0 8px; font-weight: 800; letter-spacing: 0.2px; }
   background-image: url("assets/logo.png");
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 100%;
+  background-size: 90%;
   border-radius: 12px;
 }
 .card__face--front {
@@ -273,7 +273,7 @@ h1, h2 { margin: 6px 0 8px; font-weight: 800; letter-spacing: 0.2px; }
     gap: 8px;
     place-content: center;
   }
-  .board--easy   { grid-template-columns: repeat(2, 1fr); }
+  .board--easy   { grid-template-columns: repeat(3, 1fr); }
   .board--medium { grid-template-columns: repeat(4, 1fr); }
   .board--hard   { grid-template-columns: repeat(4, 1fr); }
   .card__inner   { padding-top: 100%; } /* quadradas no totem */
