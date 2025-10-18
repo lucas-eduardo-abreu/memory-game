@@ -2,16 +2,17 @@
 const CONFIG = {
   ASSET_BASE: "assets",
   EXT: "png",
+  BACK_IMAGE: "assets/logo.png", // troque pelo seu arquivo transparente se necessário
   DIFFS: {
-    easy:   { label: "Fácil",   pairs: 6,  boardClass: "board--easy" },
-    medium: { label: "Médio",   pairs: 8,  boardClass: "board--medium" },
-    hard:   { label: "Difícil", pairs: 12, boardClass: "board--hard" },
+    easy:   { label: "Fácil",   pairs: 6,  boardClass: "board--easy",   cols: 3 },
+    medium: { label: "Médio",   pairs: 8,  boardClass: "board--medium", cols: 4 },
+    hard:   { label: "Difícil", pairs: 12, boardClass: "board--hard",   cols: 6 },
   },
-  TIME_LIMITS: { easy: 30, medium: 45, hard: 60 },
+  TIME_LIMITS: { easy: 60, medium: 90, hard: 120 },
   FLIP_BACK_MS: 600
 };
 
-const $ = (s) => document.querySelector(s);
+const $  = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 
 // ==================== ELEMENTOS ====================
@@ -20,19 +21,19 @@ const screens = {
   select: $("#screen-select"),
   game: $("#screen-game"),
   win: $("#screen-win"),
+  lose: $("#screen-lose"),
 };
 const board = $("#board");
-const hud = {
-  diff: $("#hud-difficulty"),
-  time: $("#hud-time"),
-};
-const overlay = $("#pause-overlay");
+const hud = { diff: $("#hud-difficulty"), time: $("#hud-time") };
+const overlay = $("#pause-overlay"); // mantido, mas não será usado para derrota
 const btnStart = $("#btn-start");
 const btnBack = $("#btn-back-start");
 const btnExit = $("#btn-exit");
-const btnResume = $("#btn-resume");
+const btnResume = $("#btn-resume"); // mantido
 const btnPlayAgain = $("#btn-play-again");
 const btnGoMenu = $("#btn-go-menu");
+const btnLoseRetry = $("#btn-lose-retry");
+const btnLoseMenu  = $("#btn-lose-menu");
 
 // ==================== STATE ====================
 let state = {
@@ -44,6 +45,7 @@ let state = {
   timeLeft: 0,
   totalTime: 0,
   timerId: null,
+  cols: 0,
 };
 
 // ==================== UTIL ====================
@@ -51,6 +53,7 @@ function showScreen(name){
   $$(".screen").forEach(s => s.classList.remove("screen--active"));
   screens[name].classList.add("screen--active");
 }
+
 function shuffle(a){
   for(let i=a.length-1;i>0;i--){
     const j=Math.floor(Math.random()*(i+1));
@@ -68,9 +71,6 @@ function updateTimebar(pct){
   const bar=$("#timebar");
   const fill=bar.querySelector(".timebar__fill");
   fill.style.width=(pct*100).toFixed(0)+"%";
-  bar.classList.remove("is-warn","is-danger");
-  if(pct<=0.5) bar.classList.add("is-warn");
-  if(pct<=0.2) bar.classList.add("is-danger");
 }
 
 // ==================== TIMER ====================
@@ -90,9 +90,11 @@ function stopTimer(){
   state.timerId=null;
 }
 function timeUp(){
-  state.lock=true;
-  board.style.pointerEvents="none";
-  overlay.hidden=false;
+  // 👉 derrota usa a mesma estrutura de "win", mas sem confetes
+  state.lock = true;
+  board.style.pointerEvents = "none";
+  overlay.hidden = true; // garante que o antigo overlay não apareça
+  showScreen("lose");
 }
 
 // ==================== BOARD ====================
@@ -107,9 +109,39 @@ function makeDeck(diff){
   return shuffle(deck);
 }
 
+/**
+ * Calcula o tamanho da célula (quadrado) para caber SEM SCROLL.
+ * Mantém gaps consistentes entre linhas e colunas.
+ */
+function resizeBoardCells() {
+  const style = getComputedStyle(board);
+  const gap = parseFloat(style.rowGap || style.gap) || 0;
+
+  const cols = state.cols || 2;
+  const totalCards = state.pairs * 2;
+  const rows = Math.ceil(totalCards / cols);
+
+  const contW = board.clientWidth;
+  const contH = board.clientHeight;
+
+  const gapW = (cols - 1) * gap;
+  const gapH = (rows - 1) * gap;
+
+  const cellW = (contW - gapW) / cols;
+  const cellH = (contH - gapH) / rows;
+  let cell = Math.floor(Math.max(40, Math.min(cellW, cellH)));
+
+  // fator de escala por dificuldade (fácil com 3 colunas)
+  const scale = state.diff==="easy" ? 0.75 : state.diff==="medium" ? 0.85 : 1;
+  cell = Math.floor(cell * scale);
+
+  const MAX_CELL = 180;
+  board.style.setProperty("--cell-size", `${Math.min(cell, MAX_CELL)}px`);
+}
+
 function renderBoard(diff){
   const cfg=CONFIG.DIFFS[diff];
-  Object.assign(state,{diff,pairs:cfg.pairs,found:0,first:null,lock:false});
+  Object.assign(state,{diff,pairs:cfg.pairs,found:0,first:null,lock:false, cols: cfg.cols});
   hud.diff.textContent=cfg.label;
   board.className="board "+cfg.boardClass;
   board.innerHTML="";
@@ -124,19 +156,34 @@ function renderBoard(diff){
   deck.forEach(({k,src})=>{
     const c=document.createElement("div");
     c.className="card"; c.dataset.k=k;
+
     const inner=document.createElement("div");
     inner.className="card__inner";
+
+    // frente
     const f1=document.createElement("div");
     f1.className="card__face card__face--front";
     const img=document.createElement("img");
-    img.src=src; f1.appendChild(img);
+    img.src=src; img.decoding="async"; img.loading="eager";
+    f1.appendChild(img);
+
+    // costas (PNG transparente)
     const f2=document.createElement("div");
     f2.className="card__face card__face--back";
+    const backImg=document.createElement("img");
+    backImg.className="card-back-img";
+    backImg.src=CONFIG.BACK_IMAGE;
+    backImg.alt="Costas da carta";
+    backImg.decoding="async"; backImg.loading="eager";
+    f2.appendChild(backImg);
+
     inner.append(f1,f2);
     c.appendChild(inner);
     c.onclick=()=>flip(c);
     board.appendChild(c);
   });
+
+  requestAnimationFrame(resizeBoardCells);
 }
 
 function flip(card){
@@ -162,11 +209,10 @@ function flip(card){
 }
 
 function win(){
-  // Mostra tela de vitória minimal
   showScreen("win");
-  // Dispara confete em peso 🎊
   startConfetti();
 }
+
 // ==================== NAV ====================
 btnStart.onclick=()=>showScreen("select");
 btnBack.onclick=()=>showScreen("start");
@@ -175,109 +221,89 @@ $$('#screen-select .btn[data-diff]').forEach(b=>b.onclick=()=>{
   showScreen("game");
 });
 btnExit.onclick=()=>{ stopTimer(); showScreen("select"); };
-btnResume.onclick=()=>{ overlay.hidden=true; renderBoard(state.diff); showScreen("game"); };
-btnPlayAgain.onclick=()=>{ renderBoard(state.diff); showScreen("game"); };
-btnGoMenu.onclick=()=>{ stopTimer(); showScreen("start"); };
+btnResume.onclick=()=>{ overlay.hidden=true; renderBoard(state.diff); showScreen("game"); }; // mantido p/ compat
 
-btnPlayAgain.onclick = () => {
-  stopConfetti();
-  renderBoard(state.diff);
-  showScreen("game");
-};
+// vitória
+btnPlayAgain.onclick=()=>{ stopConfetti(); renderBoard(state.diff); showScreen("game"); };
+btnGoMenu.onclick=()=>{ stopConfetti(); stopTimer(); showScreen("start"); };
 
-btnGoMenu.onclick = () => {
-  stopConfetti();
-  stopTimer();
-  showScreen("start");
-};
+// derrota (mesma UX da vitória, sem confetes)
+btnLoseRetry.onclick=()=>{ renderBoard(state.diff); showScreen("game"); };
+btnLoseMenu.onclick =()=>{ stopTimer(); showScreen("start"); };
 
 showScreen("start");
+
+// Recalcula células ao redimensionar
+window.addEventListener("resize", () => {
+  if (screens.game.classList.contains("screen--active")) {
+    resizeBoardCells();
+  }
+});
 
 // ==================== CONFETTI ====================
 let confettiRAF = null;
 let confettiParticles = [];
 let confettiStartedAt = 0;
 const CONFETTI_COLORS = ["#ffffff", "#ff6b6b", "#ffd93d", "#6bcBef", "#2bd96b", "#ff8bff", "#00953b"];
-const CONFETTI_DURATION_MS = 7000; // quanto tempo anima
+const CONFETTI_DURATION_MS = 7000;
 const CONFETTI_GRAVITY = 0.12;
 const CONFETTI_DRAG = 0.995;
-const CONFETTI_COUNT = 320; // MUITO confete 😁
+const CONFETTI_COUNT = 320;
 
-function getCanvas() {
-  return document.getElementById("confetti-canvas");
-}
+function getCanvas() { return document.getElementById("confetti-canvas"); }
 function resizeConfettiCanvas() {
-  const c = getCanvas();
-  if (!c) return;
+  const c = getCanvas(); if (!c) return;
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   c.width  = Math.floor(c.clientWidth  * dpr);
   c.height = Math.floor(c.clientHeight * dpr);
   const ctx = c.getContext("2d");
-  ctx.scale(dpr, dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
-
 function makeParticle(w, h) {
   const angle = Math.random() * Math.PI * 2;
   const speed = 4 + Math.random() * 6;
   return {
     x: Math.random() * w,
-    y: -20 + Math.random() * 40,       // nasce no topo
-    vx: Math.cos(angle) * speed * 0.6, // espalha lateralmente
+    y: -20 + Math.random() * 40,
+    vx: Math.cos(angle) * speed * 0.6,
     vy: Math.sin(angle) * speed * 0.2,
     size: 6 + Math.random() * 8,
     rot: Math.random() * Math.PI * 2,
     vr: (Math.random() - 0.5) * 0.2,
     color: CONFETTI_COLORS[(Math.random() * CONFETTI_COLORS.length) | 0],
-    alpha: 1,
     shape: Math.random() < 0.5 ? "rect" : "circle",
   };
 }
-
 function startConfetti() {
-  const c = getCanvas();
-  if (!c) return;
+  const c = getCanvas(); if (!c) return;
   resizeConfettiCanvas();
   const w = c.clientWidth, h = c.clientHeight;
-
   confettiParticles = Array.from({ length: CONFETTI_COUNT }, () => makeParticle(w, h));
   confettiStartedAt = performance.now();
-
   cancelAnimationFrame(confettiRAF);
   tickConfetti();
 }
 function stopConfetti() {
   cancelAnimationFrame(confettiRAF);
   confettiRAF = null;
-  const c = getCanvas();
-  if (c) {
-    const ctx = c.getContext("2d");
-    ctx.clearRect(0, 0, c.width, c.height);
-  }
+  const c = getCanvas(); if (c) c.getContext("2d").clearRect(0, 0, c.width, c.height);
 }
 function tickConfetti(ts) {
-  const c = getCanvas();
-  if (!c) return;
+  const c = getCanvas(); if (!c) return;
   const ctx = c.getContext("2d");
   const w = c.clientWidth, h = c.clientHeight;
 
-  // fim por tempo
-  if (ts && ts - confettiStartedAt > CONFETTI_DURATION_MS) {
-    stopConfetti();
-    return;
-  }
+  if (ts && ts - confettiStartedAt > CONFETTI_DURATION_MS) { stopConfetti(); return; }
 
   ctx.clearRect(0, 0, c.width, c.height);
 
-  // desenha e atualiza
   for (let p of confettiParticles) {
-    // física
     p.vx *= CONFETTI_DRAG;
     p.vy = p.vy * CONFETTI_DRAG + CONFETTI_GRAVITY;
     p.x += p.vx;
     p.y += p.vy;
     p.rot += p.vr;
 
-    // reaparece no topo se sair
     if (p.y > h + 20) {
       p.y = -20;
       p.x = Math.random() * w;
@@ -285,7 +311,6 @@ function tickConfetti(ts) {
       p.vx = (Math.random() - 0.5) * 6;
     }
 
-    // desenho (com leve oscilação de alpha simulando flip)
     const flicker = 0.5 + 0.5 * Math.cos(p.rot * 3);
     const a = 0.6 + 0.4 * flicker;
 

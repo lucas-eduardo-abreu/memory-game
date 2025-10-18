@@ -8,7 +8,7 @@
 </head>
 <body>
   <main id="app" aria-live="polite">
-    <!-- TELA DE LOADING / PRELOAD -->
+    <!-- LOADING (opcional) -->
     <section id="screen-loading" class="screen" aria-label="Carregando">
       <div class="panel">
         <h2>Carregando assets…</h2>
@@ -20,7 +20,7 @@
       </div>
     </section>
 
-    <!-- TELA INICIAL -->
+    <!-- INÍCIO -->
     <section id="screen-start" class="screen screen--active" aria-label="Menu inicial">
       <div class="start-container">
         <img src="assets/logo.png" alt="Logo Orquídea" class="start-logo">
@@ -30,14 +30,14 @@
       </div>
     </section>
 
-    <!-- SELEÇÃO DE DIFICULDADE -->
+    <!-- SELEÇÃO -->
     <section id="screen-select" class="screen" aria-label="Seleção de dificuldade">
       <div class="panel">
         <h2>Escolha a dificuldade</h2>
         <div class="difficulty-grid">
-          <button class="btn btn-colored btn-secondary btn-lg" data-diff="easy">Fácil<br></button>
-          <button class="btn btn-colored btn-secondary btn-lg" data-diff="medium">Médio<br></button>
-          <button class="btn btn-colored btn-secondary btn-lg" data-diff="hard">Difícil<br></button>
+          <button class="btn btn-colored btn-secondary btn-lg" data-diff="easy">Fácil</button>
+          <button class="btn btn-colored btn-secondary btn-lg" data-diff="medium">Médio</button>
+          <button class="btn btn-colored btn-secondary btn-lg" data-diff="hard">Difícil</button>
         </div>
         <button id="btn-back-start" class="btn btn-ghost">Voltar</button>
       </div>
@@ -54,7 +54,6 @@
           <span id="hud-difficulty" class="badge" aria-live="polite">—</span>
           <span class="dot">•</span>
 
-          <!-- BARRA REGRESSIVA DE TEMPO -->
           <div id="timebar" class="timebar" role="progressbar"
                aria-label="Tempo restante" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
             <div class="timebar__track">
@@ -62,28 +61,12 @@
             </div>
             <span id="hud-time" class="sr-only">00:30</span>
           </div>
-
-          <!-- ocultos (apenas referência):
-          <span class="dot">•</span>
-          <span id="hud-pairs" class="badge" aria-live="polite">0/0</span>
-          <span class="dot">•</span>
-          <span id="hud-moves" class="badge" aria-live="polite">Movimentos: 0</span>
-          <span class="dot">•</span>
-          <span id="hud-best" class="badge" aria-live="polite" title="Seu recorde">Recorde —</span>
-          -->
         </div>
 
-        <div class="right">
-          <!-- (sem pause) -->
-          <!--
-          <button id="btn-hint" class="btn btn-outline" aria-label="Mostrar dica (1x)">Dica (1)</button>
-          <button id="btn-mute" class="btn btn-outline" aria-pressed="false" aria-label="Ativar/Desativar som">🔊</button>
-          <button id="btn-restart" class="btn btn-outline" aria-label="Recomeçar">Recomeçar</button>
-          -->
-        </div>
+        <div class="right"></div>
       </header>
 
-      <!-- OVERLAY: usado SOMENTE para tempo esgotado -->
+      <!-- (mantido, porém não é mais usado) -->
       <div id="pause-overlay" class="overlay" hidden role="dialog" aria-label="Tempo esgotado">
         <div class="overlay-content">
           ⏰ Tempo esgotado
@@ -96,17 +79,25 @@
       <div id="board" class="board" role="grid" aria-label="Cartas do tabuleiro"></div>
     </section>
 
-    <!-- FIM DE PARTIDA -->
-    <section id="screen-win" class="screen" aria-label="Fim de partida">
-      <!-- Canvas do confete fica por trás, ocupando a tela toda -->
+    <!-- VITÓRIA -->
+    <section id="screen-win" class="screen" aria-label="Fim de partida (vitória)">
       <canvas id="confetti-canvas" class="confetti-canvas" aria-hidden="true"></canvas>
-
       <div class="panel panel--win">
         <h2 class="win-title">Parabéns! 🎉</h2>
-
         <div class="actions">
           <button id="btn-play-again" class="btn btn-primary">Jogar novamente</button>
           <button id="btn-go-menu" class="btn btn-ghost">Voltar ao menu</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- DERROTA (mesma estrutura da vitória, sem confete) -->
+    <section id="screen-lose" class="screen" aria-label="Fim de partida (derrota)">
+      <div class="panel panel--win">
+        <h2 class="win-title">Tempo esgotado ⏰</h2>
+        <div class="actions">
+          <button id="btn-lose-retry" class="btn btn-primary">Tentar novamente</button>
+          <button id="btn-lose-menu" class="btn btn-ghost">Voltar ao menu</button>
         </div>
       </div>
     </section>

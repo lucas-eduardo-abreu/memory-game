@@ -1,320 +1,138 @@
-/* ======================================================
-   RESET E VARIÁVEIS
-   ====================================================== */
 :root {
   --bg: #0b0f14;
   --panel: #121820;
   --text: #e6eef8;
   --muted: #9fb3c8;
   --primary: #4da3ff;
-  --primary-2: #2f7dd1;
-  --outline: #2a3544;
-  --accent: #8bffa8;
-  --warn: #ffcc66;
-  --danger: #ff6b6b;
 
-  /* ===== Timebar (cores configuráveis) ===== */
   --timebar-width: 260px;
   --timebar-height: 14px;
   --timebar-radius: 999px;
   --timebar-track: rgba(255,255,255,0.18);
-  --timebar-ok:     #2bd96b;
-  --timebar-warn:   #ffcc66;
-  --timebar-danger: #ff6b6b;
+
+  --gap: 12px;        /* espaçamento padrão entre cartas */
+  --cell-size: 120px; /* recalculado no JS */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
-
 body {
-  background: transparent; /* sem cor de fundo global */
+  background: transparent;
   color: var(--text);
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji','Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
-  -webkit-user-select: none;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, 'Noto Sans', sans-serif;
   user-select: none;
-  -webkit-touch-callout: none;
-  overflow: hidden; /* evita scroll em totem */
+  overflow: hidden; /* sem scroll global */
 }
 
-/* ======================================================
-   TELAS E PAINÉIS
-   ====================================================== */
-#app, .screen {
-  width: 100%;
-  height: 100%;
-}
+#app, .screen { width: 100%; height: 100%; }
 .screen {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  display: none; align-items: center; justify-content: center;
+  padding: 0;
+  background-position: center; background-repeat: no-repeat; background-size: cover;
 }
-.screen--active {
-  display: flex;
-}
+.screen--active { display: flex; }
 
-/* ======================================================
-   BACKGROUNDS POR TELA
-   ====================================================== */
 #screen-start {
-  background: url("assets/Inicial ORQUID.jpg") no-repeat center center;
-  background-size: cover;
+  background: url("assets/Inicial ORQUID.jpg") no-repeat center center / cover;
+}
+#screen-select, #screen-game, #screen-win, #screen-lose {
+  background: url("assets/Fundo OKK.jpg") no-repeat center center / cover;
 }
 
-#screen-select,
-#screen-game,
-#screen-win {
-  background: url("assets/Fundo OKK.jpg") no-repeat center center;
-  background-size: cover;
-}
-
-/* ======================================================
-   BOTÕES E ELEMENTOS BÁSICOS
-   ====================================================== */
-.btn {
-  appearance: none;
-  border: 0;
-  padding: 14px 18px;
-  border-radius: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform .05s ease, background .2s ease, border .2s ease;
-  font-size: 18px;
-  line-height: 1.1;
-  color: #fff;
-}
+/* Botões */
+.btn { appearance: none; border: 0; padding: 14px 18px; border-radius: 14px; font-weight: 700; cursor: pointer; color: #fff; }
 .btn:active { transform: translateY(1px) scale(0.99); }
+.btn-primary { background: #00953b; }
+.btn-ghost { background: transparent; }
+.btn-colored { background: #00953b; border: 2px solid #00953b; font-weight: 900; box-shadow: 0 4px 14px rgba(0, 149, 59, 0.4); }
 
-.btn-primary {
-  background: #00953b;
-  color: #fff;
-}
-.btn-primary:hover { background: #07a94a; }
-
-.btn-ghost { background: transparent; color: #fff; }
-
-.btn-colored {
-  background: #00953b;
-  border: 2px solid #00953b;
-  color: #fff;
-  font-weight: 900;
-  box-shadow: 0 4px 14px rgba(0, 149, 59, 0.4);
-  transition: transform 0.1s ease, background 0.3s ease, box-shadow 0.3s ease;
-}
-.btn-colored:hover {
-  background: #07a94a;
-  border-color: #07a94a;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 149, 59, 0.5);
-}
-
-/* ======================================================
-   TELA INICIAL
-   ====================================================== */
-#screen-start.screen--active .start-container {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 60px;
-  z-index: 2;
-}
-
-.start-logo {
-  width: min(240px, 55vw);
-  height: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
-  animation: fadeInDown 0.8s ease-out;
-}
+.start-container { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 60px; z-index: 2; }
+.start-logo { width: min(240px, 55vw); height: auto; object-fit: contain; }
 
 .btn-start {
-  background: #00953b;
-  color: #fff;
-  font-size: 38px;
-  font-weight: 900;
-  border-radius: 24px;
-  padding: 28px 60px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-  transition: transform 0.2s ease, background 0.3s ease;
-  border: none;
-  cursor: pointer;
-  animation: fadeInUp 1s ease-out;
-}
-.btn-start:hover {
-  background: #07a94a;
-  transform: translateY(-3px);
+  background: #00953b; color: #fff; font-size: 38px; font-weight: 900;
+  border-radius: 24px; padding: 28px 60px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
 }
 
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-40px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(40px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* Dificuldade */
+.panel { width: min(920px, 94vw); padding: 28px 24px 32px; text-align: center; }
+.difficulty-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 12px auto 8px; width: min(800px, 90vw); }
 
-/* ======================================================
-   TELAS DE DIFICULDADE / JOGO / VITÓRIA
-   ====================================================== */
-.panel {
-  width: min(920px, 94vw);
-  padding: 28px 24px 32px;
-  text-align: center;
-}
-
-/* Grade de dificuldade */
-.difficulty-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin: 12px auto 8px;
-  width: min(800px, 90vw);
-}
-
-/* ======================================================
-   TOPBAR / HUD
-   ====================================================== */
+/* Topbar */
 .topbar {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 64px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  padding: 10px 14px;
-  gap: 8px;
-  pointer-events: none;
+  position: absolute; top: 0; left: 0; right: 0; height: 64px;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  padding: 10px 14px; gap: 8px; pointer-events: none;
 }
-.topbar .left, .topbar .right {
-  display: flex; align-items: center; gap: 8px;
-}
+.topbar .left, .topbar .right { display: flex; align-items: center; gap: 8px; }
 .topbar .left .btn, .topbar .right .btn { pointer-events: auto; }
-.topbar .center {
-  pointer-events: none;
-  display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
-}
+.topbar .center { pointer-events: none; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 
 /* Timebar */
-.timebar {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  pointer-events: auto;
-}
+.timebar { display: inline-flex; align-items: center; gap: 10px; }
 .timebar__track {
-  width: var(--timebar-width);
-  height: var(--timebar-height);
+  width: var(--timebar-width); height: var(--timebar-height);
   border-radius: var(--timebar-radius);
   background: var(--timebar-track);
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.15);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  overflow: hidden; border: 1px solid rgba(255,255,255,.15);
 }
-.timebar__fill {
-  height: 100%;
-  width: 100%;
-  border-radius: var(--timebar-radius);
-  transition: width .25s linear, background-color .2s ease;
-  background: var(--timebar-ok);
-}
-.timebar.is-warn .timebar__fill { background: var(--timebar-warn); }
-.timebar.is-danger .timebar__fill { background: var(--timebar-danger); }
+.timebar__fill { height: 100%; width: 100%; background: #2bd96b; transition: width .25s linear; }
 
-/* ======================================================
-   TABULEIRO
-   ====================================================== */
+/* Board (sem scroll) */
 .board {
   width: min(1100px, 94vw);
   height: calc(100vh - 64px);
   margin-top: 64px;
   display: grid;
-  gap: 10px;
+
+  /* gap explícito nas duas direções */
+  gap: var(--gap);
+  row-gap: var(--gap);
+  column-gap: var(--gap);
+
   place-content: center;
-  overflow: auto;
+  overflow: hidden;
+  grid-auto-rows: var(--cell-size);
 }
-.board--easy   { grid-template-columns: repeat(2, 1fr); }
+
+/* Fácil = 3 colunas */
+.board--easy   { grid-template-columns: repeat(3, 1fr); }
 .board--medium { grid-template-columns: repeat(4, 1fr); }
 .board--hard   { grid-template-columns: repeat(6, 1fr); }
 
+/* Cartas */
 .card { perspective: 1200px; }
 .card__inner {
-  position: relative;
-  width: 100%;
-  padding-top: 100%;
-  transform-style: preserve-3d;
-  transition: transform .6s;
+  position: relative; width: 100%; height: 100%;
+  transform-style: preserve-3d; transition: transform .6s;
 }
 .card.flipped .card__inner { transform: rotateY(180deg); }
 
-.card__face {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-}
+.card__face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 12px; }
+
+/* costas transparentes */
 .card__face--back {
-  background-image: url("assets/logo.png");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 90%;
-  border-radius: 12px;
+  background: none;
+  display: flex; align-items: center; justify-content: center;
 }
-.card__face--front {
-  transform: rotateY(180deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.card__face--front img {
-  max-width: 100%;
-  max-height: 100%;
+.card-back-img {
+  width: 95%; height: 95%;
   object-fit: contain;
 }
 
-/* ======================================================
-   TELA DE VITÓRIA + CONFETES
-   ====================================================== */
-#screen-win {
-  position: relative;
-  overflow: hidden;
+/* frente */
+.card__face--front {
+  transform: rotateY(180deg);
+  display: flex; align-items: center; justify-content: center;
 }
-.confetti-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-}
-.panel--win {
-  position: relative;
-  z-index: 1;
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,255,255,.15);
-  box-shadow: 0 10px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
-}
-.win-title {
-  font-size: clamp(32px, 4.5vw, 56px);
-  margin: 6px 0 16px;
-  font-weight: 900;
-}
-#screen-win .actions {
-  display: flex;
-  gap: 14px;
-  justify-content: center;
-  margin-top: 8px;
-}
+.card__face--front img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-/* ======================================================
-   RESPONSIVO
-   ====================================================== */
+/* Win/Lose panels (mesmo estilo) */
+#screen-win, #screen-lose { position: relative; overflow: hidden; }
+.confetti-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.panel--win { position: relative; z-index: 1; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,.15); border-radius: 14px; padding: 20px; text-align: center; }
+.win-title { font-size: clamp(32px, 4.5vw, 56px); margin: 6px 0 16px; font-weight: 900; }
+
 @media (orientation: portrait) {
-  .board { width: 100%; height: calc(100vh - 64px); margin-top: 64px; gap: 8px; }
-  .card__inner { padding-top: 100%; }
+  .board { width: 100%; height: calc(100vh - 64px); margin-top: 64px; gap: var(--gap); row-gap: var(--gap); column-gap: var(--gap); }
 }
