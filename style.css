@@ -146,3 +146,15 @@ body {
 @media (orientation: portrait) {
   .board { width: 100%; height: calc(100vh - 64px); margin-top: 64px; gap: var(--gap); row-gap: var(--gap); column-gap: var(--gap); }
 }
+
+/* em telas pequenas (celular), coloca o tempo abaixo da barrinha */
+@media (max-width: 600px) {
+  .topbar .center {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+.start-logo {
+  display: none !important;
+}
